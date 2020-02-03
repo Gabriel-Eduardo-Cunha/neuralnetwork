@@ -2,6 +2,7 @@ import math
 import random
 import time
 import json
+import os
 
 # The Network Class by itself
 
@@ -9,7 +10,7 @@ import json
 class Network:
 
     # Construct
-    def __init__(self, jsonOrModel = True, loadModel = False):
+    def __init__(self, jsonOrModel = True, loadJson = False):
         if jsonOrModel == True:
             self._i_nodes = 1
             self._h_nodes = 2
@@ -26,11 +27,11 @@ class Network:
             self._learningRate = 0.1
 
             self._data = {'inputs': [], 'outputs': [], 'meanings': []}
-        elif loadModel:
-            self.loadModel(jsonOrModel)
+        elif loadJson:
+            self.loadJson(jsonOrModel)   
         else:
-            self.loadJson(jsonOrModel)
-            
+            self.loadModel(jsonOrModel)
+                  
 
     # public Methods
 
@@ -123,16 +124,12 @@ class Network:
                     smallestMSE = self.getMSE()
                     smallestMSEJson = self.toJson()
                 cnt += 1
-            self.__init__(smallestMSEJson)
-        print('Started Training')
+            self.__init__(smallestMSEJson, True)
         cnt = 0
-        startTime = time.time()
         while cnt < attempts:
             self._practiceData()
             cnt += 1
-        totalTime = round(time.time() - startTime, 3)
         self.saveModel()
-        return 'Trained Succesfully ' + str(attempts) + ' times, Taked: ' + str(totalTime) + ' seconds, MSE: ' + str(self.getMSE())
 
     def trainToMSE(self, targetMSE):
         startTime = time.time()
@@ -145,7 +142,12 @@ class Network:
         return 'Trained Succesfully to MSE: ' + str(self.getMSE()) + ', Taked: ' + str(totalTime) + ' seconds, after: ' + str(cnt) + ' attempts'
 
     def guess(self, input):
-        return self.getData()['meanings'][self.getData()['outputs'].index(self._predict(input))]
+        try:
+            outputIndex = self.getData()['outputs'].index(self._predict(input))
+        except:
+            return 'None'
+
+        return self.getData()['meanings'][outputIndex]
 
     def guessWord(self, sentence):
         guess = self._predict(Network._stringToBinaryArray(sentence))
@@ -186,12 +188,18 @@ class Network:
         print('Errors: ' + str(self.getErrors()))
 
     def saveModel(self, modelName='lastModel'):
-        f = open(modelName + '.txt', 'w+')
+        path = os.path.dirname(os.path.abspath(__file__)) + '\\models'
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+        
+        f = open(os.path.join(path, modelName + '.txt'), 'w+')
         f.write(self.toJson())
         f.close
 
     def loadModel(self, modelName):
-        f = open(modelName + '.txt', 'r')
+        path = os.path.dirname(os.path.abspath(__file__)) + '\\models'
+        f = open(os.path.join(path, modelName + '.txt'), 'r')
         jsonStr = f.read()
         self.loadJson(jsonStr)
 
